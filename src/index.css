@@ -1,0 +1,157 @@
+@import 'tailwindcss';
+
+:root {
+  --ink: #1a241c;
+  --moss: #1f3d2b;
+  --leaf: #7a9e7e;
+  --patch: #c8d5a8;
+  --gold: #e8c07d;
+  --paper: #f3efe6;
+  --paper-deep: #e6e0d2;
+  --danger: #9b3b2e;
+  --safe: #2f6b4f;
+  --font-display: 'Fraunces', Georgia, serif;
+  --font-body: 'Source Sans 3', system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-body);
+  background:
+    radial-gradient(ellipse at 10% 0%, rgba(200, 213, 168, 0.45), transparent 45%),
+    radial-gradient(ellipse at 90% 10%, rgba(232, 192, 125, 0.28), transparent 40%),
+    linear-gradient(165deg, #f7f3ea 0%, var(--paper) 45%, #ebe4d6 100%);
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+a {
+  color: var(--moss);
+}
+
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.nav-link {
+  color: rgba(255, 255, 255, 0.78);
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.35rem 0.55rem;
+  border-radius: 999px;
+}
+
+.nav-link.active {
+  color: var(--moss);
+  background: var(--patch);
+}
+
+.panel {
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(31, 61, 43, 0.12);
+  backdrop-filter: blur(8px);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 0.7rem;
+  padding: 0.7rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: var(--moss);
+  color: #f7f3ea;
+}
+
+.btn-secondary {
+  background: var(--paper-deep);
+  color: var(--ink);
+}
+
+.btn-danger {
+  background: color-mix(in srgb, var(--danger) 16%, white);
+  color: var(--danger);
+}
+
+.btn-safe {
+  background: color-mix(in srgb, var(--safe) 16%, white);
+  color: var(--safe);
+}
+
+.field {
+  width: 100%;
+  border: 1px solid rgba(31, 61, 43, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  border-radius: 0.7rem;
+  padding: 0.7rem 0.85rem;
+}
+
+.field:focus {
+  outline: 2px solid color-mix(in srgb, var(--leaf) 55%, white);
+  outline-offset: 1px;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 0.55rem 0.4rem;
+  border-radius: 0.6rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: rgba(26, 36, 28, 0.62);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+
+.tab.active {
+  background: white;
+  color: var(--moss);
+  box-shadow: 0 1px 2px rgba(26, 36, 28, 0.08);
+}
