@@ -242,7 +242,7 @@ export default function IngestPage() {
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-display text-2xl">Add product</h2>
+        <h2 className="font-display text-2xl">Add Product</h2>
         <p className="text-sm text-[rgba(26,36,28,0.65)] mt-1">
           Every path ends in an editable preview before it hits your log.
         </p>

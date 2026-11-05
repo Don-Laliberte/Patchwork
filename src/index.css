@@ -408,6 +408,43 @@ textarea.add-well {
   margin: 0.45rem 0 0;
 }
 
+.support-details {
+  overflow: hidden;
+}
+
+.support-details > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 1.25rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.support-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.support-details > summary::after {
+  content: '';
+  flex-shrink: 0;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 1.75px solid rgba(26, 36, 28, 0.45);
+  border-bottom: 1.75px solid rgba(26, 36, 28, 0.45);
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.support-details[open] > summary::after {
+  transform: rotate(45deg);
+}
+
+.support-details-body {
+  padding: 0 1.25rem 1.25rem;
+}
+
 .product-card {
   position: relative;
   overflow: hidden;
