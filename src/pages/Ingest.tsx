@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ProductPreviewForm } from '../components/ProductPreviewForm'
 import { startBarcodeScan, type BarcodeStop } from '../lib/barcode'
@@ -232,11 +232,11 @@ export default function IngestPage() {
     )
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'barcode', label: 'Barcode' },
-    { id: 'paste', label: 'Paste' },
-    { id: 'photo', label: 'Photo' },
-    { id: 'url', label: 'URL' },
+  const tabs: { id: Tab; label: string; icon: ReactNode }[] = [
+    { id: 'barcode', label: 'Barcode', icon: <BarcodeIcon /> },
+    { id: 'paste', label: 'Paste', icon: <PasteIcon /> },
+    { id: 'photo', label: 'Photo', icon: <CameraIcon /> },
+    { id: 'url', label: 'URL', icon: <LinkIcon /> },
   ]
 
   return (
@@ -248,136 +248,242 @@ export default function IngestPage() {
         </p>
       </div>
 
-      <div className="panel rounded-xl p-1 flex gap-1">
-        {tabs.map((t) => (
-          <button
-            key={t.id}
-            type="button"
-            className={`tab ${tab === t.id ? 'active' : ''}`}
-            onClick={() => {
-              if (t.id !== 'barcode') stopScanner()
-              setTab(t.id)
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'paste' && (
-        <div className="panel rounded-2xl p-4 space-y-3">
-          <input
-            className="field"
-            placeholder="Product name"
-            value={pasteName}
-            onChange={(e) => setPasteName(e.target.value)}
-          />
-          {manualBarcode && (
-            <p className="text-xs text-[rgba(26,36,28,0.55)]">
-              Barcode on deck: {manualBarcode}
-            </p>
-          )}
-          <textarea
-            className="field min-h-40"
-            placeholder="Paste ingredients, separated by commas…"
-            value={pasteText}
-            onChange={(e) => setPasteText(e.target.value)}
-          />
-          <button type="button" className="btn btn-primary w-full" onClick={() => void handlePastePreview()}>
-            Preview ingredients
-          </button>
-        </div>
-      )}
-
-      {tab === 'photo' && (
-        <div className="panel rounded-2xl p-4 space-y-3">
-          <input
-            className="field"
-            placeholder="Product name (optional for now)"
-            value={pasteName}
-            onChange={(e) => setPasteName(e.target.value)}
-          />
-          <label className="btn btn-primary w-full cursor-pointer">
-            Take or upload photo
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              className="hidden"
-              onChange={(e) => void handlePhoto(e.target.files?.[0] ?? null)}
-            />
-          </label>
-          {ocrProgress != null && (
-            <p className="text-sm">OCR progress: {ocrProgress}%</p>
-          )}
-          <p className="text-xs text-[rgba(26,36,28,0.55)]">
-            Photos stay on this device. Crop to the ingredients block for best results.
-          </p>
-        </div>
-      )}
-
-      {tab === 'barcode' && (
-        <div className="panel rounded-2xl p-4 space-y-3">
-          <div className="overflow-hidden rounded-xl bg-black aspect-[3/4]">
-            <video ref={videoRef} className="h-full w-full object-cover" muted playsInline />
-          </div>
-          <div className="flex gap-2">
-            {!scanning ? (
-              <button type="button" className="btn btn-primary flex-1" onClick={() => void startScanner()}>
-                Start camera
-              </button>
-            ) : (
-              <button type="button" className="btn btn-secondary flex-1" onClick={stopScanner}>
-                Stop camera
-              </button>
-            )}
-          </div>
-          <div className="flex gap-2">
-            <input
-              className="field"
-              placeholder="Or type barcode"
-              value={manualBarcode}
-              onChange={(e) => setManualBarcode(e.target.value)}
-              inputMode="numeric"
-            />
+      <div className="add-card panel">
+        <div className="add-tabs" role="tablist" aria-label="How to add a product">
+          {tabs.map((t) => (
             <button
+              key={t.id}
               type="button"
-              className="btn btn-secondary"
-              onClick={() => void resolveBarcode(manualBarcode.replace(/\D/g, ''))}
+              role="tab"
+              aria-selected={tab === t.id}
+              aria-label={t.label}
+              title={t.label}
+              className={`add-tab ${tab === t.id ? 'active' : ''}`}
+              onClick={() => {
+                if (t.id !== 'barcode') stopScanner()
+                // Manual tab changes clear stale messages. Handoffs from photo /
+                // barcode / URL call setTab directly and keep their error.
+                if (t.id !== tab) {
+                  setError(null)
+                  setStatus(null)
+                }
+                setTab(t.id)
+              }}
             >
-              Look up
+              {t.icon}
             </button>
-          </div>
+          ))}
         </div>
-      )}
 
-      {tab === 'url' && (
-        <div className="panel rounded-2xl p-4 space-y-3">
-          <input
-            className="field"
-            placeholder="https://…"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <button
-            type="button"
-            className="btn btn-primary w-full"
-            disabled={!url.trim()}
-            onClick={() => void handleUrl()}
-          >
-            Fetch ingredients
-          </button>
-          <p className="text-xs text-[rgba(26,36,28,0.55)]">
-            Best on brand / INCI pages (including INCIDecoder links). Amazon often
-            blocks lookups — Patchwork tries INCIDecoder, then Open Beauty Facts,
-            and rejects junk matches. Paste or photo the label when databases are
-            missing or wrong. Always verify against the bottle.
-          </p>
+        <div className="add-card-body">
+          {tab === 'paste' && (
+            <>
+              <input
+                className="field"
+                placeholder="Product name"
+                value={pasteName}
+                onChange={(e) => setPasteName(e.target.value)}
+                aria-label="Product name"
+              />
+              {manualBarcode && (
+                <p className="add-note">Barcode on deck: {manualBarcode}</p>
+              )}
+              <textarea
+                className="field add-well"
+                placeholder="Paste ingredients, separated by commas…"
+                value={pasteText}
+                onChange={(e) => setPasteText(e.target.value)}
+                aria-label="Ingredients"
+              />
+              <button
+                type="button"
+                className="btn btn-primary w-full"
+                disabled={!pasteName.trim() || !pasteText.trim()}
+                onClick={() => void handlePastePreview()}
+              >
+                Preview ingredients
+              </button>
+            </>
+          )}
+
+          {tab === 'photo' && (
+            <>
+              <input
+                className="field"
+                placeholder="Product name (optional for now)"
+                value={pasteName}
+                onChange={(e) => setPasteName(e.target.value)}
+                aria-label="Product name"
+              />
+              <label className="add-well add-well-hit">
+                <CameraIcon />
+                Take or upload photo
+                <input
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={(e) => void handlePhoto(e.target.files?.[0] ?? null)}
+                />
+              </label>
+              {ocrProgress != null && (
+                <p className="add-note">OCR progress: {ocrProgress}%</p>
+              )}
+              <p className="add-note">
+                Photos stay on this device. Crop to the ingredients block for best results.
+              </p>
+            </>
+          )}
+
+          {tab === 'barcode' && (
+            <>
+              <div className="add-inline-field">
+                <input
+                  className="field"
+                  placeholder="Type a barcode…"
+                  value={manualBarcode}
+                  onChange={(e) => setManualBarcode(e.target.value)}
+                  inputMode="numeric"
+                  aria-label="Barcode"
+                  onKeyDown={(e) => {
+                    const code = manualBarcode.replace(/\D/g, '')
+                    if (e.key === 'Enter' && code) void resolveBarcode(code)
+                  }}
+                />
+                <button
+                  type="button"
+                  className="add-inline-action"
+                  disabled={!manualBarcode.replace(/\D/g, '')}
+                  onClick={() => void resolveBarcode(manualBarcode.replace(/\D/g, ''))}
+                >
+                  Look up
+                </button>
+              </div>
+              <div className={`add-well add-camera ${scanning ? 'live' : ''}`}>
+                <video ref={videoRef} className="add-camera-video" muted playsInline />
+                {!scanning ? (
+                  <button type="button" className="add-well-action" onClick={() => void startScanner()}>
+                    <CameraIcon />
+                    Start camera
+                  </button>
+                ) : (
+                  <button type="button" className="add-well-stop" onClick={stopScanner}>
+                    Stop camera
+                  </button>
+                )}
+              </div>
+              <p className="add-note">Point the camera at a barcode, or type the number above.</p>
+            </>
+          )}
+
+          {tab === 'url' && (
+            <>
+              <div className="add-inline-field">
+                <input
+                  className="field"
+                  placeholder="https://…"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  aria-label="Product page URL"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && url.trim()) void handleUrl()
+                  }}
+                />
+                <button
+                  type="button"
+                  className="add-inline-action"
+                  disabled={!url.trim()}
+                  onClick={() => void handleUrl()}
+                >
+                  Fetch
+                </button>
+              </div>
+              <details className="add-note-details">
+                <summary>
+                  Best on brand / INCI pages. Always verify against the bottle.
+                </summary>
+                <p>
+                  Amazon often blocks lookups — Patchwork tries INCIDecoder, then Open
+                  Beauty Facts, and rejects junk matches. Paste or photo the label when
+                  databases are missing or wrong.
+                </p>
+              </details>
+            </>
+          )}
+
+          {status && <p className="text-sm text-[var(--moss)]">{status}</p>}
+          {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
         </div>
-      )}
-
-      {status && <p className="text-sm text-[var(--moss)]">{status}</p>}
-      {error && <p className="text-sm text-[var(--danger)]">{error}</p>}
+      </div>
     </div>
+  )
+}
+
+function BarcodeIcon() {
+  return (
+    <svg width="26" height="22" viewBox="0 0 28 24" aria-hidden>
+      <rect x="1" y="3" width="1.5" height="18" fill="currentColor" />
+      <rect x="4" y="3" width="2.7" height="18" fill="currentColor" />
+      <rect x="8.1" y="3" width="1.2" height="18" fill="currentColor" />
+      <rect x="10.6" y="3" width="2.3" height="18" fill="currentColor" />
+      <rect x="14.2" y="3" width="1.1" height="18" fill="currentColor" />
+      <rect x="16.6" y="3" width="3" height="18" fill="currentColor" />
+      <rect x="20.9" y="3" width="1.4" height="18" fill="currentColor" />
+      <rect x="23.6" y="3" width="2.4" height="18" fill="currentColor" />
+    </svg>
+  )
+}
+
+function PasteIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="7" y="4.5" width="10" height="3.5" rx="1.2" stroke="currentColor" strokeWidth="1.75" />
+      <path
+        d="M9 5.5H7.5A2.5 2.5 0 0 0 5 8v10.5A2.5 2.5 0 0 0 7.5 21h9a2.5 2.5 0 0 0 2.5-2.5V8A2.5 2.5 0 0 0 16.5 5.5H15"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M9 12.5h6M9 16h4.5"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
+  )
+}
+
+function CameraIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M8.2 7.2 9.4 5.4h5.2l1.2 1.8"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinejoin="round"
+      />
+      <rect x="3.5" y="7.2" width="17" height="11.6" rx="2" stroke="currentColor" strokeWidth="1.75" />
+      <circle cx="12" cy="13" r="2.7" stroke="currentColor" strokeWidth="1.75" />
+    </svg>
+  )
+}
+
+function LinkIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path
+        d="M10 13a5 5 0 0 0 7.07 0l1.76-1.76a5 5 0 0 0-7.07-7.07L10.5 5.4"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+      <path
+        d="M14 11a5 5 0 0 0-7.07 0L5.17 12.76a5 5 0 0 0 7.07 7.07l1.23-1.23"
+        stroke="currentColor"
+        strokeWidth="1.75"
+        strokeLinecap="round"
+      />
+    </svg>
   )
 }

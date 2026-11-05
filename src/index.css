@@ -137,23 +137,230 @@ a {
   outline-offset: 1px;
 }
 
-.tab {
+.add-card {
+  overflow: hidden;
+  padding: 0;
+  border-radius: 1rem;
+}
+
+.add-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(31, 61, 43, 0.12);
+  background: rgba(31, 61, 43, 0.05);
+}
+
+.add-tab {
+  --add-icon-fill: rgba(255, 255, 255, 0.55);
   flex: 1;
-  text-align: center;
-  padding: 0.55rem 0.4rem;
-  border-radius: 0.6rem;
-  font-weight: 600;
-  font-size: 0.85rem;
-  color: rgba(26, 36, 28, 0.62);
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 2.75rem;
   border: none;
+  border-right: 1px solid rgba(31, 61, 43, 0.12);
+  background: transparent;
+  color: rgba(26, 36, 28, 0.45);
   cursor: pointer;
 }
 
-.tab.active {
-  background: white;
+.add-tab:last-child {
+  border-right: none;
+}
+
+.add-tab.active {
+  --add-icon-fill: #fff;
   color: var(--moss);
-  box-shadow: 0 1px 2px rgba(26, 36, 28, 0.08);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.add-tab:focus-visible {
+  outline: 2px solid var(--leaf);
+  outline-offset: -2px;
+}
+
+.add-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.add-well {
+  min-height: 6.5rem;
+  border-radius: 0.7rem;
+}
+
+textarea.add-well {
+  resize: vertical;
+}
+
+.add-inline-field {
+  display: flex;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(31, 61, 43, 0.18);
+  border-radius: 0.7rem;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.add-inline-field .field {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  border-radius: 0;
+  background: transparent;
+}
+
+.add-inline-field .field:focus {
+  outline: none;
+}
+
+.add-inline-field:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--leaf) 55%, white);
+  outline-offset: 1px;
+}
+
+.add-inline-action {
+  flex-shrink: 0;
+  align-self: stretch;
+  border: none;
+  border-radius: 0;
+  background: var(--moss);
+  color: #f7f3ea;
+  font-weight: 700;
+  font-size: 0.9rem;
+  padding: 0 1.05rem;
+  cursor: pointer;
+}
+
+.add-inline-action:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.add-inline-action:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.add-camera {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(31, 61, 43, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.add-camera.live {
+  background: #111;
+  border-color: transparent;
+}
+
+.add-camera-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+}
+
+.add-camera.live .add-camera-video {
+  opacity: 1;
+}
+
+.add-well-action,
+.add-well-hit {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border: none;
+  background: transparent;
+  color: var(--moss);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.add-well-action {
+  position: absolute;
+  inset: 0;
+}
+
+.add-well-hit {
+  border: 1px solid rgba(31, 61, 43, 0.18);
+  background: rgba(255, 255, 255, 0.85);
+  text-align: center;
+  padding: 1rem;
+}
+
+.add-well-action svg,
+.add-well-hit svg {
+  width: 1.65rem;
+  height: 1.65rem;
+}
+
+.add-well-stop {
+  position: absolute;
+  right: 0.55rem;
+  bottom: 0.55rem;
+  z-index: 1;
+  border: none;
+  border-radius: 999px;
+  padding: 0.35rem 0.7rem;
+  background: rgba(255, 252, 246, 0.92);
+  color: var(--ink);
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.add-note {
+  margin: 0;
+  color: rgba(26, 36, 28, 0.55);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.add-note-details {
+  color: rgba(26, 36, 28, 0.55);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.add-note-details summary {
+  display: inline;
+  cursor: pointer;
+  list-style: none;
+}
+
+.add-note-details summary::-webkit-details-marker {
+  display: none;
+}
+
+.add-note-details summary::after {
+  content: '';
+  display: inline-block;
+  width: 0.35rem;
+  height: 0.35rem;
+  margin-left: 0.4rem;
+  vertical-align: 0.12em;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg);
+  transition: transform 0.15s ease;
+}
+
+.add-note-details[open] summary::after {
+  vertical-align: 0.2em;
+  transform: rotate(45deg);
+}
+
+.add-note-details p {
+  margin: 0.45rem 0 0;
 }
 
 .product-card {
