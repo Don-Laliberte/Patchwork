@@ -14,6 +14,8 @@ interface Draft {
   name: string
   ingredients: string[]
   barcode?: string
+  imageUrl?: string
+  sourceUrl?: string
   source: ProductSource
 }
 
@@ -123,6 +125,8 @@ export default function IngestPage() {
         name: result.name,
         ingredients: parsed.map((p) => p.raw),
         barcode: code,
+        imageUrl: result.imageUrl,
+        sourceUrl: `https://world.openbeautyfacts.org/product/${encodeURIComponent(code)}`,
         source: 'barcode',
       })
     } catch (err) {
@@ -171,6 +175,8 @@ export default function IngestPage() {
           {
             name: result.name,
             ingredients: parsed.map((p) => p.raw),
+            imageUrl: result.imageUrl,
+            sourceUrl: result.sourceUrl,
             source: 'url',
           },
           result.warning,
@@ -179,6 +185,8 @@ export default function IngestPage() {
         openDraft({
           name: result.name,
           ingredients: parsed.map((p) => p.raw),
+          imageUrl: result.imageUrl,
+          sourceUrl: result.sourceUrl,
           source: 'url',
         })
       }
@@ -211,6 +219,8 @@ export default function IngestPage() {
           initialName={draft.name}
           initialIngredients={draft.ingredients}
           initialBarcode={draft.barcode}
+          initialImageUrl={draft.imageUrl}
+          initialSourceUrl={draft.sourceUrl}
           source={draft.source}
           onSaved={() => navigate('/')}
           onCancel={() => {

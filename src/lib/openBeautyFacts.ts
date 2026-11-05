@@ -11,7 +11,14 @@ export interface BeautyProductLookup {
   barcode: string
   name: string
   ingredientsText: string
+  imageUrl?: string
   found: boolean
+}
+
+interface ObfProductImages {
+  image_front_small_url?: string
+  image_front_url?: string
+  image_url?: string
 }
 
 interface ObfResponse {
@@ -23,7 +30,17 @@ interface ObfResponse {
     ingredients_text?: string
     ingredients_text_en?: string
     ingredients?: Array<{ text?: string; id?: string }>
-  }
+  } & ObfProductImages
+}
+
+/** Prefer a small front pack-shot for list thumbnails. */
+export function pickObfImageUrl(product: ObfProductImages): string | undefined {
+  const url =
+    product.image_front_small_url?.trim() ||
+    product.image_front_url?.trim() ||
+    product.image_url?.trim() ||
+    ''
+  return url || undefined
 }
 
 export async function lookupOpenBeautyFacts(
@@ -36,12 +53,19 @@ export async function lookupOpenBeautyFacts(
       cached.ingredientsText &&
       !isPlausibleIngredientsText(cached.ingredientsText)
     ) {
-      return { barcode, name: cached.name, ingredientsText: '', found: false }
+      return {
+        barcode,
+        name: cached.name,
+        ingredientsText: '',
+        imageUrl: cached.imageUrl,
+        found: false,
+      }
     }
     return {
       barcode,
       name: cached.name,
       ingredientsText: cleaned || cached.ingredientsText,
+      imageUrl: cached.imageUrl,
       found: Boolean(cached.name || cleaned),
     }
   }
@@ -87,11 +111,14 @@ export async function lookupOpenBeautyFacts(
     ingredientsText = ''
   }
 
+  const imageUrl = pickObfImageUrl(product)
+
   if (name || ingredientsText) {
     await db.barcodeCache.put({
       barcode,
       name,
       ingredientsText,
+      imageUrl,
       cachedAt: Date.now(),
     })
   }
@@ -100,6 +127,7 @@ export async function lookupOpenBeautyFacts(
     barcode,
     name,
     ingredientsText,
+    imageUrl,
     found: Boolean(name || ingredientsText),
   }
 }
@@ -108,6 +136,7 @@ export interface BeautySearchHit {
   name: string
   ingredientsText: string
   code?: string
+  imageUrl?: string
 }
 
 async function searchOnce(cleaned: string): Promise<BeautySearchHit | null> {
@@ -123,21 +152,30 @@ async function searchOnce(cleaned: string): Promise<BeautySearchHit | null> {
       page_size: '12',
     }).toString()
 
-  const res = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      'X-Patchwork-Client': USER_AGENT,
-    },
-  })
+  let res: Response
+  try {
+    // OBF search.pl often stalls indefinitely; abort so URL ingest can fail fast
+    res = await fetch(url, {
+      headers: {
+        Accept: 'application/json',
+        'X-Patchwork-Client': USER_AGENT,
+      },
+      signal: AbortSignal.timeout(8000),
+    })
+  } catch {
+    return null
+  }
   if (!res.ok) return null
 
   const data = (await res.json()) as {
-    products?: Array<{
-      code?: string
-      product_name?: string
-      ingredients_text?: string
-      ingredients_text_en?: string
-    }>
+    products?: Array<
+      {
+        code?: string
+        product_name?: string
+        ingredients_text?: string
+        ingredients_text_en?: string
+      } & ObfProductImages
+    >
   }
 
   const queryTokens = cleaned
@@ -161,7 +199,14 @@ async function searchOnce(cleaned: string): Promise<BeautySearchHit | null> {
         (ingredientsText.length > 20 ? 10 : 0) +
         nameHits * 3 +
         queryTokens.reduce((n, t) => n + (hay.includes(t) ? 1 : 0), 0)
-      return { name, ingredientsText, code: p.code, score, nameHits }
+      return {
+        name,
+        ingredientsText,
+        code: p.code,
+        imageUrl: pickObfImageUrl(p),
+        score,
+        nameHits,
+      }
     })
     .filter(
       (p) =>
@@ -177,6 +222,7 @@ async function searchOnce(cleaned: string): Promise<BeautySearchHit | null> {
     name: best.name || cleaned,
     ingredientsText: best.ingredientsText,
     code: best.code,
+    imageUrl: best.imageUrl,
   }
 }
 

@@ -1,8 +1,11 @@
 import { useLiveQuery } from 'dexie-react-hooks'
-import { useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { db } from '../db/schema'
+import { db, type Product } from '../db/schema'
+import { DuplicateCluster } from '../components/DuplicateCluster'
+import { ProductCard } from '../components/ProductCard'
 import { ProductPreviewForm } from '../components/ProductPreviewForm'
+import { clusterByIdentity } from '../lib/productMatch'
 import { deleteProduct } from '../lib/products'
 
 export default function ProductsPage() {
@@ -11,18 +14,63 @@ export default function ProductsPage() {
     [],
   )
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [query, setQuery] = useState('')
+  const [pendingDelete, setPendingDelete] = useState<Product | null>(null)
+  const [openActionsId, setOpenActionsId] = useState<number | null>(null)
+  const cancelDeleteRef = useRef<HTMLButtonElement>(null)
+  const deleteTitleId = useId()
 
   const editing = products?.find((p) => p.id === editingId)
+  const normalizedQuery = query.trim().toLowerCase()
+  const clusters = useMemo(() => {
+    if (!products) return []
+    return clusterByIdentity(products)
+      .map((group) => [...group].sort((a, b) => b.updatedAt - a.updatedAt))
+      .sort((a, b) => (b[0]?.updatedAt ?? 0) - (a[0]?.updatedAt ?? 0))
+      .filter((group) => {
+        if (!normalizedQuery) return true
+        return group.some(
+          (product) =>
+            product.name.toLowerCase().includes(normalizedQuery) ||
+            product.barcode?.toLowerCase().includes(normalizedQuery) ||
+            product.ingredients.some((ingredient) =>
+              ingredient.toLowerCase().includes(normalizedQuery),
+            ),
+        )
+      })
+  }, [products, normalizedQuery])
+
+  useEffect(() => {
+    if (!pendingDelete) return
+    cancelDeleteRef.current?.focus()
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') setPendingDelete(null)
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [pendingDelete])
 
   if (editing && editing.id != null) {
     return (
       <div className="space-y-4">
-        <h2 className="font-display text-2xl">Edit product</h2>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-secondary px-3"
+            onClick={() => setEditingId(null)}
+            aria-label="Back to products"
+          >
+            ←
+          </button>
+          <h2 className="font-display text-2xl">Edit product</h2>
+        </div>
         <ProductPreviewForm
           productId={editing.id}
           initialName={editing.name}
           initialIngredients={editing.ingredients}
           initialBarcode={editing.barcode}
+          initialImageUrl={editing.imageUrl}
+          initialSourceUrl={editing.sourceUrl}
           source={editing.source}
           flaggedBreakout={editing.flaggedBreakout}
           onSaved={() => setEditingId(null)}
@@ -34,14 +82,23 @@ export default function ProductsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <h2 className="font-display text-2xl">Products</h2>
-          <p className="text-sm text-[rgba(26,36,28,0.65)] mt-1">
-            Breakout rows feed elimination. Tolerated products help clear false suspects.
-          </p>
-        </div>
-        <Link to="/add" className="btn btn-primary">
+      <div>
+        <h2 className="font-display text-2xl">Products</h2>
+        <p className="text-sm text-[rgba(26,36,28,0.65)] mt-1">
+          Breakout rows feed elimination. Tolerated products help clear false suspects.
+        </p>
+      </div>
+
+      <div className="flex gap-2">
+        <input
+          className="field min-w-0 flex-1"
+          type="search"
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search by name, ingredient, or barcode…"
+          aria-label="Search products"
+        />
+        <Link to="/add" className="btn btn-primary shrink-0">
           Add
         </Link>
       </div>
@@ -60,48 +117,105 @@ export default function ProductsPage() {
         </div>
       )}
 
-      <ul className="space-y-3">
-        {products?.map((product) => (
-          <li key={product.id} className="panel rounded-2xl p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="font-semibold leading-snug">{product.name}</p>
-                <p className="mt-1 text-xs uppercase tracking-wide text-[rgba(26,36,28,0.55)]">
-                  {product.flaggedBreakout ? 'Breakout' : 'Tolerated'} · {product.source}
-                  {product.barcode ? ` · ${product.barcode}` : ''}
-                </p>
-                <p className="mt-2 text-sm text-[rgba(26,36,28,0.72)] line-clamp-2">
-                  {product.ingredients.slice(0, 8).join(', ')}
-                  {product.ingredients.length > 8 ? '…' : ''}
-                </p>
-                <p className="mt-2 text-xs text-[rgba(26,36,28,0.5)]">
-                  {product.ingredients.length} ingredients
-                </p>
-              </div>
-            </div>
-            <div className="mt-3 flex gap-2">
+      {products && products.length > 0 && clusters.length === 0 && (
+        <p className="text-sm text-[rgba(26,36,28,0.65)]">
+          No products match “{query.trim()}”.
+        </p>
+      )}
+
+      <ul className="space-y-2.5">
+        {clusters.map((group) => {
+          const key = group.map((product) => product.id).join('-')
+          if (group.length > 1) {
+            return (
+              <DuplicateCluster
+                key={key}
+                products={group}
+                openActionsId={openActionsId}
+                onToggleActions={(id) =>
+                  setOpenActionsId((prev) => (prev === id ? null : id))
+                }
+                onCloseActions={() => setOpenActionsId(null)}
+                onEdit={(id) => {
+                  setOpenActionsId(null)
+                  setEditingId(id)
+                }}
+                onDelete={(product) => {
+                  setOpenActionsId(null)
+                  setPendingDelete(product)
+                }}
+              />
+            )
+          }
+          const product = group[0]!
+          return (
+            <ProductCard
+              key={product.id ?? key}
+              product={product}
+              actionsOpen={openActionsId === product.id}
+              onToggleActions={() =>
+                setOpenActionsId((prev) =>
+                  prev === product.id ? null : (product.id ?? null),
+                )
+              }
+              onCloseActions={() => setOpenActionsId(null)}
+              onEdit={() => {
+                setOpenActionsId(null)
+                setEditingId(product.id ?? null)
+              }}
+              onDelete={() => {
+                setOpenActionsId(null)
+                setPendingDelete(product)
+              }}
+            />
+          )
+        })}
+      </ul>
+
+      {pendingDelete && pendingDelete.id != null && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-[rgba(26,36,28,0.45)] p-4 sm:items-center"
+          role="presentation"
+          onClick={() => setPendingDelete(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={deleteTitleId}
+            className="panel w-full max-w-sm rounded-2xl p-5 shadow-lg"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 id={deleteTitleId} className="font-display text-xl">
+              Delete product?
+            </h3>
+            <p className="mt-2 text-sm text-[rgba(26,36,28,0.72)]">
+              “{pendingDelete.name}” will be removed from this device. This can’t
+              be undone.
+            </p>
+            <div className="mt-5 flex gap-2">
               <button
+                ref={cancelDeleteRef}
                 type="button"
                 className="btn btn-secondary flex-1"
-                onClick={() => setEditingId(product.id ?? null)}
+                onClick={() => setPendingDelete(null)}
               >
-                Edit
+                Cancel
               </button>
               <button
                 type="button"
-                className="btn btn-danger"
+                className="btn btn-danger flex-1"
                 onClick={() => {
-                  if (product.id != null && confirm(`Delete ${product.name}?`)) {
-                    void deleteProduct(product.id)
-                  }
+                  const id = pendingDelete.id
+                  setPendingDelete(null)
+                  if (id != null) void deleteProduct(id)
                 }}
               >
                 Delete
               </button>
             </div>
-          </li>
-        ))}
-      </ul>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -8,6 +8,10 @@ export interface Product {
   source: ProductSource
   barcode?: string
   ingredients: string[]
+  /** Remote pack-shot URL from OBF / page og:image (not a local OCR photo) */
+  imageUrl?: string
+  /** Original product / data-source page when ingest had a URL */
+  sourceUrl?: string
   /** Breakout product when true; tolerated/safe product when false */
   flaggedBreakout: boolean
   notes?: string
@@ -27,6 +31,7 @@ export interface BarcodeCacheEntry {
   barcode: string
   name: string
   ingredientsText: string
+  imageUrl?: string
   cachedAt: number
 }
 
@@ -38,6 +43,18 @@ export class PatchworkDB extends Dexie {
   constructor() {
     super('patchwork')
     this.version(1).stores({
+      products: '++id, name, flaggedBreakout, barcode, updatedAt',
+      ingredients: 'normalizedName, cleared, displayName',
+      barcodeCache: 'barcode, cachedAt',
+    })
+    // v2 adds optional imageUrl on products / barcodeCache (no new indexes)
+    this.version(2).stores({
+      products: '++id, name, flaggedBreakout, barcode, updatedAt',
+      ingredients: 'normalizedName, cleared, displayName',
+      barcodeCache: 'barcode, cachedAt',
+    })
+    // v3 adds optional sourceUrl on products (no new indexes)
+    this.version(3).stores({
       products: '++id, name, flaggedBreakout, barcode, updatedAt',
       ingredients: 'normalizedName, cleared, displayName',
       barcodeCache: 'barcode, cachedAt',

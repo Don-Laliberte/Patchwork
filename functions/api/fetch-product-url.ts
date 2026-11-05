@@ -18,6 +18,7 @@ import {
   isPlausibleIngredientsText,
 } from '../../src/lib/ingredientsQuality.ts'
 import {
+  extractInciDecoderImageUrl,
   extractInciDecoderIngredients,
   extractInciDecoderProductName,
   fetchInciDecoderProductUrl,
@@ -55,6 +56,7 @@ export async function onRequestGet(context: {
     productNameFromAmazonUrl(target) || productNameFromAmazonUrl(parsed.toString())
   let name = amazonHint?.name ? cleanDisplayProductName(amazonHint.name) : ''
   let ingredientsText = ''
+  let imageUrl: string | undefined
   let warning: string | undefined
   let blocked = false
 
@@ -69,6 +71,7 @@ export async function onRequestGet(context: {
             : name) || 'Untitled product',
         ingredientsText: inciDirect.ingredientsText,
         sourceUrl: inciDirect.sourceUrl,
+        imageUrl: inciDirect.imageUrl,
         warning:
           'Ingredients came from INCIDecoder (verify against your bottle — formulas vary by region).',
       },
@@ -102,11 +105,14 @@ export async function onRequestGet(context: {
           : 'This store blocked automated page access.'
       } else {
         name = cleanProductName(decodeEntities(extractTitle(html))) || name
+        const ogImage = decodeEntities(extractMeta(html, 'og:image'))
+        if (ogImage) imageUrl = ogImage
         // Prefer INCIDecoder-specific extraction when applicable
         const host = parsed.hostname.replace(/^www\./, '')
         if (/incidecoder\.com$/i.test(host) || /inkeedecoder\.com$/i.test(host)) {
           ingredientsText = extractInciDecoderIngredients(html)
           name = extractInciDecoderProductName(html) || name
+          imageUrl = extractInciDecoderImageUrl(html) || imageUrl
         } else {
           ingredientsText = extractIngredients(html)
         }
@@ -126,6 +132,7 @@ export async function onRequestGet(context: {
         ingredientsText = inci.ingredientsText
         // Catalog title is usually better than Amazon slug (e.g. "Vitamin C" vs "Vitamin")
         if (inci.name?.trim()) name = inci.name
+        if (!imageUrl && inci.imageUrl) imageUrl = inci.imageUrl
         warning = [
           warning,
           'Ingredients came from INCIDecoder (verify against your bottle — formulas vary by region).',
@@ -143,6 +150,7 @@ export async function onRequestGet(context: {
     const obf = await searchOpenBeautyFacts(name)
     if (obf?.ingredientsText) {
       ingredientsText = obf.ingredientsText
+      if (!imageUrl && obf.imageUrl) imageUrl = obf.imageUrl
       warning = [
         warning,
         'Ingredients came from Open Beauty Facts (verify against your bottle — formulas vary by region).',
@@ -171,6 +179,7 @@ export async function onRequestGet(context: {
         name: name || 'Untitled product',
         ingredientsText,
         sourceUrl: parsed.toString(),
+        imageUrl,
         warning,
         blocked,
       },
@@ -339,6 +348,20 @@ function looksLikeIngredientList(text: string): boolean {
 interface ObfSearchHit {
   name: string
   ingredientsText: string
+  imageUrl?: string
+}
+
+function pickObfImageUrl(product: {
+  image_front_small_url?: string
+  image_front_url?: string
+  image_url?: string
+}): string | undefined {
+  const url =
+    product.image_front_small_url?.trim() ||
+    product.image_front_url?.trim() ||
+    product.image_url?.trim() ||
+    ''
+  return url || undefined
 }
 
 async function searchOpenBeautyFacts(
@@ -368,11 +391,13 @@ async function searchOpenBeautyFacts(
       }).toString()
 
     try {
+      // OBF search.pl often stalls indefinitely; abort so URL ingest can fail fast
       const res = await fetch(url, {
         headers: {
           Accept: 'application/json',
           'User-Agent': 'Patchwork/1.0 (+https://example.com/support)',
         },
+        signal: AbortSignal.timeout(8000),
       })
       if (!res.ok) continue
       const data = (await res.json()) as {
@@ -380,6 +405,9 @@ async function searchOpenBeautyFacts(
           product_name?: string
           ingredients_text?: string
           ingredients_text_en?: string
+          image_front_small_url?: string
+          image_front_url?: string
+          image_url?: string
         }>
       }
 
@@ -402,6 +430,7 @@ async function searchOpenBeautyFacts(
           return {
             name,
             ingredientsText,
+            imageUrl: pickObfImageUrl(p),
             score: (ingredientsText.length > 20 ? 10 : 0) + nameHits * 3,
             nameHits,
           }
@@ -418,6 +447,7 @@ async function searchOpenBeautyFacts(
         return {
           name: ranked[0].name || cleaned,
           ingredientsText: ranked[0].ingredientsText,
+          imageUrl: ranked[0].imageUrl,
         }
       }
     } catch {

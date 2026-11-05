@@ -14,6 +14,7 @@ export interface UrlIngestResult {
   name: string
   ingredientsText: string
   sourceUrl: string
+  imageUrl?: string
   warning?: string
   blocked?: boolean
 }
@@ -63,6 +64,7 @@ export async function fetchProductFromUrl(url: string): Promise<UrlIngestResult>
     localName ||
     ''
   let ingredientsText = data.ingredientsText || ''
+  let imageUrl = data.imageUrl
   let warning = data.warning
   const blocked = Boolean(data.blocked) || !res.ok
 
@@ -87,6 +89,7 @@ export async function fetchProductFromUrl(url: string): Promise<UrlIngestResult>
       if (obf?.ingredientsText) {
         ingredientsText = cleanupIngredientsText(obf.ingredientsText)
         if (isPlausibleIngredientsText(ingredientsText)) {
+          if (!imageUrl && obf.imageUrl) imageUrl = obf.imageUrl
           warning = [
             warning,
             'Ingredients came from Open Beauty Facts (verify against your bottle — formulas vary by region).',
@@ -107,6 +110,7 @@ export async function fetchProductFromUrl(url: string): Promise<UrlIngestResult>
       name: name || localName || 'Untitled product',
       ingredientsText,
       sourceUrl: data.sourceUrl || canonical,
+      imageUrl,
       warning,
       blocked,
     }

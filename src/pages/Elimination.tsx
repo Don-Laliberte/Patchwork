@@ -1,6 +1,8 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { db } from '../db/schema'
+import { clusterByIdentity, duplicateStatusConflict } from '../lib/productMatch'
 import { computeClearedList, computeSuspects } from '../lib/suspects'
 import { setIngredientCleared } from '../lib/products'
 
@@ -11,6 +13,7 @@ export default function EliminationPage() {
 
   const suspects = computeSuspects(products, metas)
   const cleared = computeClearedList(products, metas)
+  const conflictCount = clusterByIdentity(products).filter(duplicateStatusConflict).length
 
   return (
     <div className="space-y-6">
@@ -21,6 +24,19 @@ export default function EliminationPage() {
           found in tolerated products drop off this list.
         </p>
       </div>
+
+      {conflictCount > 0 && (
+        <div className="panel rounded-2xl p-4 text-sm">
+          <p>
+            {conflictCount === 1
+              ? '1 product is saved as both Breakout and Tolerated, so it is left out of elimination until you pick a status.'
+              : `${conflictCount} products are saved as both Breakout and Tolerated, so they are left out of elimination until you pick a status.`}
+          </p>
+          <Link to="/" className="btn btn-secondary mt-3 inline-flex">
+            Review products
+          </Link>
+        </div>
+      )}
 
       <section className="space-y-3">
         <h3 className="font-display text-xl">Suspects</h3>

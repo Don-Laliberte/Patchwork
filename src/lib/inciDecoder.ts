@@ -10,6 +10,7 @@ export interface InciDecoderHit {
   name: string
   ingredientsText: string
   sourceUrl: string
+  imageUrl?: string
 }
 
 function decodeEntities(text: string): string {
@@ -20,6 +21,25 @@ function decodeEntities(text: string): string {
     .replace(/&quot;/g, '"')
     .replace(/&#39;/g, "'")
     .replace(/&nbsp;/g, ' ')
+}
+
+function extractMeta(html: string, property: string): string {
+  const re = new RegExp(
+    `<meta[^>]+(?:property|name)=["']${property}["'][^>]+content=["']([^"']+)["']`,
+    'i',
+  )
+  const re2 = new RegExp(
+    `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${property}["']`,
+    'i',
+  )
+  return (html.match(re)?.[1] || html.match(re2)?.[1] || '').trim()
+}
+
+/** Pack shot from INCIDecoder product page Open Graph tags. */
+export function extractInciDecoderImageUrl(html: string): string | undefined {
+  const raw = extractMeta(html, 'og:image')
+  if (!raw) return undefined
+  return decodeEntities(raw) || undefined
 }
 
 /** Extract ordered INCI names from an INCIDecoder product HTML page. */
@@ -153,7 +173,12 @@ export async function searchInciDecoder(
           extractedName.length >= 8 && !/^la roche$/i.test(extractedName)
             ? extractedName
             : variant
-        return { name, ingredientsText, sourceUrl: productUrl }
+        return {
+          name,
+          ingredientsText,
+          sourceUrl: productUrl,
+          imageUrl: extractInciDecoderImageUrl(html),
+        }
       }
     }
   }
@@ -184,6 +209,7 @@ export async function fetchInciDecoderProductUrl(
       name: extractInciDecoderProductName(html),
       ingredientsText,
       sourceUrl: parsed.toString(),
+      imageUrl: extractInciDecoderImageUrl(html),
     }
   } catch {
     return null

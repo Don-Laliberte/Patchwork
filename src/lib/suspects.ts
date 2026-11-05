@@ -4,6 +4,7 @@ import {
   formatIngredientDisplay,
   normalizeIngredient,
 } from './normalizeIngredient'
+import { productsForElimination } from './productMatch'
 
 export interface SuspectRow {
   normalizedName: string
@@ -14,7 +15,7 @@ export interface SuspectRow {
 
 export function countBreakoutAppearances(products: Product[]): Map<string, number> {
   const counts = new Map<string, number>()
-  for (const product of products) {
+  for (const product of productsForElimination(products)) {
     if (!product.flaggedBreakout) continue
     const seenInProduct = new Set<string>()
     for (const raw of product.ingredients) {
@@ -29,7 +30,7 @@ export function countBreakoutAppearances(products: Product[]): Map<string, numbe
 
 export function countSafeAppearances(products: Product[]): Map<string, number> {
   const counts = new Map<string, number>()
-  for (const product of products) {
+  for (const product of productsForElimination(products)) {
     if (product.flaggedBreakout) continue
     const seenInProduct = new Set<string>()
     for (const raw of product.ingredients) {
