@@ -12,6 +12,10 @@
   --safe: #2f6b4f;
   --font-display: 'Fraunces', Georgia, serif;
   --font-body: 'Source Sans 3', system-ui, sans-serif;
+  --page-bg:
+    radial-gradient(ellipse at 10% 0%, rgba(200, 213, 168, 0.45), transparent 45%),
+    radial-gradient(ellipse at 90% 10%, rgba(232, 192, 125, 0.28), transparent 40%),
+    linear-gradient(165deg, #f7f3ea 0%, var(--paper) 45%, #ebe4d6 100%);
 }
 
 * {
@@ -28,10 +32,7 @@ body {
   margin: 0;
   color: var(--ink);
   font-family: var(--font-body);
-  background:
-    radial-gradient(ellipse at 10% 0%, rgba(200, 213, 168, 0.45), transparent 45%),
-    radial-gradient(ellipse at 90% 10%, rgba(232, 192, 125, 0.28), transparent 40%),
-    linear-gradient(165deg, #f7f3ea 0%, var(--paper) 45%, #ebe4d6 100%);
+  background: var(--page-bg);
   background-attachment: fixed;
 }
 
@@ -55,11 +56,55 @@ a {
 }
 
 .app-shell {
-  min-height: 100dvh;
-  display: flex;
-  flex-direction: column;
+  height: 100dvh;
   max-width: 42rem;
   margin: 0 auto;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.app-shell::-webkit-scrollbar {
+  display: none;
+}
+
+.products-sticky-sentinel {
+  height: 1px;
+  margin-bottom: -1px;
+  pointer-events: none;
+}
+
+.products-search-bar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  gap: 0.5rem;
+  margin: 0 -1rem;
+  padding: 0.65rem 1rem;
+  /* Same fixed page wash so sticky search does not flash a flat cream slab */
+  background: var(--page-bg);
+  background-attachment: fixed;
+}
+
+.products-search-bar::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 1.75rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+  background: var(--page-bg);
+  background-attachment: fixed;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+}
+
+.products-search-bar.is-stuck::after {
+  opacity: 1;
 }
 
 .nav-link {

@@ -15,7 +15,7 @@ export default function App() {
 
   return (
     <div className="app-shell">
-      <header className="sticky top-0 z-20 border-b border-[rgba(31,61,43,0.12)] bg-[rgba(31,61,43,0.94)] text-[#f7f3ea] backdrop-blur-md">
+      <header className="border-b border-[rgba(31,61,43,0.12)] bg-[rgba(31,61,43,0.94)] text-[#f7f3ea]">
         <div className="px-4 pt-4 pb-3">
           <div className="flex items-end justify-between gap-3">
             <div>
@@ -45,7 +45,7 @@ export default function App() {
         </div>
       </header>
 
-      <main className="flex-1 px-4 py-5">
+      <main className="px-4 py-5">
         <Outlet />
       </main>
 

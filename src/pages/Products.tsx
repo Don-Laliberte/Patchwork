@@ -17,7 +17,9 @@ export default function ProductsPage() {
   const [query, setQuery] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null)
   const [openActionsId, setOpenActionsId] = useState<number | null>(null)
+  const [searchStuck, setSearchStuck] = useState(false)
   const cancelDeleteRef = useRef<HTMLButtonElement>(null)
+  const stickySentinelRef = useRef<HTMLDivElement>(null)
   const deleteTitleId = useId()
 
   const editing = products?.find((p) => p.id === editingId)
@@ -49,6 +51,20 @@ export default function ProductsPage() {
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
   }, [pendingDelete])
+
+  useEffect(() => {
+    const sentinel = stickySentinelRef.current
+    if (!sentinel) return
+    const root = sentinel.closest('.app-shell')
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setSearchStuck(!(entry?.isIntersecting ?? true))
+      },
+      { root, threshold: 1 },
+    )
+    observer.observe(sentinel)
+    return () => observer.disconnect()
+  }, [editingId])
 
   if (editing && editing.id != null) {
     return (
@@ -89,7 +105,8 @@ export default function ProductsPage() {
         </p>
       </div>
 
-      <div className="flex gap-2">
+      <div ref={stickySentinelRef} className="products-sticky-sentinel" aria-hidden />
+      <div className={`products-search-bar${searchStuck ? ' is-stuck' : ''}`}>
         <input
           className="field min-w-0 flex-1"
           type="search"
