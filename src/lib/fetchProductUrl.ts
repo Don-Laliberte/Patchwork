@@ -105,6 +105,21 @@ export async function fetchProductFromUrl(url: string): Promise<UrlIngestResult>
     }
   }
 
+  // Worker may return ingredients without a thumb — ask it for a pack shot by name
+  if (ingredientsText && !imageUrl && name) {
+    try {
+      const shotRes = await fetch(
+        `${PRODUCT_URL_WORKER_PATH}?name=${encodeURIComponent(name)}`,
+      )
+      if (shotRes.ok) {
+        const shot = (await shotRes.json()) as { imageUrl?: string }
+        if (shot.imageUrl?.trim()) imageUrl = shot.imageUrl.trim()
+      }
+    } catch {
+      // save without a thumb
+    }
+  }
+
   if (ingredientsText) {
     return {
       name: name || localName || 'Untitled product',

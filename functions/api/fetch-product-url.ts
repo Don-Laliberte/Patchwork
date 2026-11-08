@@ -36,6 +36,43 @@ export async function onRequestGet(context: {
     'Content-Type': 'application/json; charset=utf-8',
   }
 
+  // Name-only pack-shot lookup (backfill for products saved without an image)
+  const nameQuery = requestUrl.searchParams.get('name')?.trim()
+  if (nameQuery && !target) {
+    try {
+      const inci = await searchInciDecoder(nameQuery)
+      if (inci?.imageUrl) {
+        return json(
+          {
+            name: inci.name,
+            imageUrl: inci.imageUrl,
+            sourceUrl: inci.sourceUrl,
+          },
+          200,
+          cors,
+        )
+      }
+      const obf = await searchOpenBeautyFacts(nameQuery)
+      if (obf?.imageUrl) {
+        return json(
+          { name: obf.name, imageUrl: obf.imageUrl },
+          200,
+          cors,
+        )
+      }
+      return json({ error: 'No pack shot found' }, 404, cors)
+    } catch (err) {
+      return json(
+        {
+          error:
+            err instanceof Error ? err.message : 'Pack shot lookup failed',
+        },
+        500,
+        cors,
+      )
+    }
+  }
+
   if (!target) {
     return json({ error: 'Missing url query parameter' }, 400, cors)
   }
@@ -157,6 +194,20 @@ export async function onRequestGet(context: {
       ]
         .filter(Boolean)
         .join(' ')
+    }
+  }
+
+  // Ingredients without a pack shot — still try catalogs for an image
+  if (ingredientsText && !imageUrl && name) {
+    try {
+      const inci = await searchInciDecoder(name)
+      if (inci?.imageUrl) imageUrl = inci.imageUrl
+    } catch {
+      // ignore; product can save without a thumb
+    }
+    if (!imageUrl) {
+      const obf = await searchOpenBeautyFacts(name)
+      if (obf?.imageUrl) imageUrl = obf.imageUrl
     }
   }
 

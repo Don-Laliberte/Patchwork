@@ -24,6 +24,7 @@ export function ProductThumb({ name, imageUrl, size = 56 }: Props) {
           alt=""
           className="h-full w-full object-cover"
           loading="lazy"
+          referrerPolicy="no-referrer"
           onError={() => setBroken(true)}
         />
       ) : (

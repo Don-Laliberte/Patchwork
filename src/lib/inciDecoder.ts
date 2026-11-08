@@ -35,11 +35,42 @@ function extractMeta(html: string, property: string): string {
   return (html.match(re)?.[1] || html.match(re2)?.[1] || '').trim()
 }
 
-/** Pack shot from INCIDecoder product page Open Graph tags. */
+function isInciDecoderChromeImage(url: string): boolean {
+  return (
+    /incidecoder-assets\.storage\.googleapis\.com/i.test(url) ||
+    /\/assets\/icons\//i.test(url) ||
+    /mstile|favicon|apple-touch|idlogo/i.test(url)
+  )
+}
+
+/**
+ * Pack shot from an INCIDecoder product page.
+ * Prefer the real front_photo CDN asset — og:image is often the site tile icon.
+ */
 export function extractInciDecoderImageUrl(html: string): string | undefined {
+  const fromImg = html.match(
+    /<img[^>]+src=["'](https:\/\/incidecoder-content\.storage\.googleapis\.com\/[^"']+_front_photo[^"']+)["']/i,
+  )?.[1]
+  if (fromImg) return decodeEntities(fromImg)
+
+  const candidates = [
+    ...html.matchAll(
+      /https:\/\/incidecoder-content\.storage\.googleapis\.com\/[^"'\s>]+_front_photo[^"'\s>]*/gi,
+    ),
+  ].map((m) => decodeEntities(m[0]))
+
+  const preferred =
+    candidates.find((u) => /_front_photo_original\.(jpe?g|png)$/i.test(u)) ||
+    candidates.find((u) => /_front_photo_300x300@1x\.jpe?g$/i.test(u)) ||
+    candidates.find((u) => /_front_photo_300x300@1x\.webp$/i.test(u)) ||
+    candidates[0]
+  if (preferred) return preferred
+
   const raw = extractMeta(html, 'og:image')
   if (!raw) return undefined
-  return decodeEntities(raw) || undefined
+  const decoded = decodeEntities(raw)
+  if (!decoded || isInciDecoderChromeImage(decoded)) return undefined
+  return decoded
 }
 
 /** Extract ordered INCI names from an INCIDecoder product HTML page. */

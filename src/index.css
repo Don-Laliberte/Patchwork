@@ -57,8 +57,6 @@ a {
 
 .app-shell {
   height: 100dvh;
-  max-width: 42rem;
-  margin: 0 auto;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-width: none;
@@ -66,6 +64,31 @@ a {
 
 .app-shell::-webkit-scrollbar {
   display: none;
+}
+
+.app-header {
+  border-bottom: 1px solid rgba(31, 61, 43, 0.12);
+  background: rgba(31, 61, 43, 0.94);
+  color: #f7f3ea;
+}
+
+.app-header-inner,
+.app-body {
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.app-header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem 1.25rem;
+  padding: 1rem 1rem 0.75rem;
+  flex-wrap: wrap;
+}
+
+.app-brand {
+  flex-shrink: 0;
 }
 
 .products-sticky-sentinel {
@@ -107,18 +130,69 @@ a {
   opacity: 1;
 }
 
+.header-nav-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: min(100%, 16rem);
+}
+
+.header-nav {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.25rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.header-nav::-webkit-scrollbar {
+  display: none;
+}
+
 .nav-link {
+  display: inline-flex;
+  align-items: center;
   color: rgba(255, 255, 255, 0.78);
   text-decoration: none;
   font-size: 0.85rem;
   font-weight: 600;
-  padding: 0.35rem 0.55rem;
+  line-height: 1;
+  height: 2rem;
+  padding: 0 0.55rem;
   border-radius: 999px;
 }
 
 .nav-link.active {
   color: var(--moss);
   background: var(--patch);
+}
+
+.product-count {
+  display: inline-flex;
+  align-items: center;
+  flex-shrink: 0;
+  gap: 0.4rem;
+  margin: 0;
+  height: 2rem;
+  padding: 0 0.65rem 0 0.45rem;
+  border-radius: 999px;
+  border: 1px solid rgba(247, 243, 234, 0.16);
+  background: rgba(247, 243, 234, 0.08);
+  color: rgba(247, 243, 234, 0.82);
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.product-count-icon {
+  flex-shrink: 0;
+  opacity: 0.9;
 }
 
 .panel {
@@ -137,7 +211,12 @@ a {
   padding: 0.7rem 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s ease, opacity 0.15s ease;
+  transition:
+    transform 0.15s ease,
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
 .btn:active {
@@ -167,6 +246,26 @@ a {
 .btn-safe {
   background: color-mix(in srgb, var(--safe) 16%, white);
   color: var(--safe);
+}
+
+@media (hover: hover) {
+  .btn-primary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--moss) 82%, white);
+    box-shadow: 0 1px 0 rgba(31, 61, 43, 0.12);
+  }
+
+  .btn-secondary:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--paper-deep) 72%, var(--moss));
+    box-shadow: 0 1px 0 rgba(31, 61, 43, 0.08);
+  }
+
+  .btn-danger:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--danger) 24%, white);
+  }
+
+  .btn-safe:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--safe) 24%, white);
+  }
 }
 
 .field {
@@ -561,6 +660,77 @@ textarea.add-well {
 .product-action-delete {
   background: color-mix(in srgb, var(--danger) 18%, white);
   color: var(--danger);
+}
+
+.elimination-columns {
+  display: grid;
+  gap: 1.5rem;
+}
+
+@media (min-width: 36rem) {
+  .elimination-columns {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+    gap: 1rem 1.25rem;
+  }
+}
+
+.ingredient-card {
+  border-radius: 1rem;
+  overflow: hidden;
+}
+
+.ingredient-card-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 0.35rem 0.85rem 0.95rem;
+}
+
+.ingredient-card-copy {
+  min-width: 0;
+  flex: 1;
+  text-align: left;
+}
+
+.ingredient-card-actions {
+  display: flex;
+  flex-shrink: 0;
+  align-items: stretch;
+  align-self: stretch;
+  border-left: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+}
+
+.ingredient-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  border: none;
+  background: transparent;
+  color: var(--moss);
+  cursor: pointer;
+}
+
+.ingredient-action-safe {
+  color: var(--safe);
+}
+
+.ingredient-action-undo {
+  color: var(--ink);
+}
+
+.ingredient-action:hover {
+  background: color-mix(in srgb, var(--ink) 5%, transparent);
+}
+
+.ingredient-action:active {
+  transform: scale(0.96);
+}
+
+.ingredient-note-panel {
+  padding: 0 0.95rem 0.95rem;
+  border-top: 1px solid color-mix(in srgb, var(--ink) 8%, transparent);
 }
 
 .product-action:hover {

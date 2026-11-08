@@ -5,6 +5,7 @@ import { db, type Product } from '../db/schema'
 import { DuplicateCluster } from '../components/DuplicateCluster'
 import { ProductCard } from '../components/ProductCard'
 import { ProductPreviewForm } from '../components/ProductPreviewForm'
+import { backfillMissingProductImages } from '../lib/packShot'
 import { clusterByIdentity } from '../lib/productMatch'
 import { deleteProduct } from '../lib/products'
 
@@ -18,9 +19,14 @@ export default function ProductsPage() {
   const [pendingDelete, setPendingDelete] = useState<Product | null>(null)
   const [openActionsId, setOpenActionsId] = useState<number | null>(null)
   const [searchStuck, setSearchStuck] = useState(false)
+  const [photoBusy, setPhotoBusy] = useState(false)
+  const [photoMessage, setPhotoMessage] = useState<string | null>(null)
   const cancelDeleteRef = useRef<HTMLButtonElement>(null)
   const stickySentinelRef = useRef<HTMLDivElement>(null)
   const deleteTitleId = useId()
+
+  const missingPhotoCount =
+    products?.filter((product) => !product.imageUrl?.trim()).length ?? 0
 
   const editing = products?.find((p) => p.id === editingId)
   const normalizedQuery = query.trim().toLowerCase()
@@ -65,6 +71,28 @@ export default function ProductsPage() {
     observer.observe(sentinel)
     return () => observer.disconnect()
   }, [editingId])
+
+  async function findMissingPhotos() {
+    if (!products?.length || photoBusy) return
+    setPhotoBusy(true)
+    setPhotoMessage(null)
+    try {
+      const { updated, checked } = await backfillMissingProductImages(products)
+      setPhotoMessage(
+        checked === 0
+          ? 'Every product already has a photo.'
+          : updated === 0
+            ? `Couldn’t find pack shots for ${checked} product${checked === 1 ? '' : 's'}.`
+            : `Added photos to ${updated} of ${checked} product${checked === 1 ? '' : 's'}.`,
+      )
+    } catch (err) {
+      setPhotoMessage(
+        err instanceof Error ? err.message : 'Photo lookup failed.',
+      )
+    } finally {
+      setPhotoBusy(false)
+    }
+  }
 
   if (editing && editing.id != null) {
     return (
@@ -119,6 +147,29 @@ export default function ProductsPage() {
           Add
         </Link>
       </div>
+
+      {missingPhotoCount > 0 && (
+        <div className="panel rounded-2xl p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-[rgba(26,36,28,0.7)]">
+            {missingPhotoCount} product{missingPhotoCount === 1 ? '' : 's'} missing
+            a pack shot.
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary shrink-0"
+            disabled={photoBusy}
+            onClick={() => void findMissingPhotos()}
+          >
+            {photoBusy ? 'Finding photos…' : 'Find missing photos'}
+          </button>
+        </div>
+      )}
+
+      {photoMessage && (
+        <p className="text-sm text-[rgba(26,36,28,0.7)]" role="status">
+          {photoMessage}
+        </p>
+      )}
 
       {!products && <p className="text-sm">Loading…</p>}
 

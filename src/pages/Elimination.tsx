@@ -1,19 +1,34 @@
 import { useLiveQuery } from 'dexie-react-hooks'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
+import { IngredientActionCard } from '../components/IngredientActionCard'
 import { db } from '../db/schema'
 import { clusterByIdentity, duplicateStatusConflict } from '../lib/productMatch'
+import { saveIngredientNote, setIngredientCleared } from '../lib/products'
 import { computeClearedList, computeSuspects } from '../lib/suspects'
-import { setIngredientCleared } from '../lib/products'
 
 export default function EliminationPage() {
   const products = useLiveQuery(() => db.products.toArray(), []) ?? []
   const metas = useLiveQuery(() => db.ingredients.toArray(), []) ?? []
   const [noteDrafts, setNoteDrafts] = useState<Record<string, string>>({})
+  const [noteOpenId, setNoteOpenId] = useState<string | null>(null)
 
   const suspects = computeSuspects(products, metas)
   const cleared = computeClearedList(products, metas)
   const conflictCount = clusterByIdentity(products).filter(duplicateStatusConflict).length
+
+  function noteFor(key: string, fallback?: string) {
+    return noteDrafts[key] ?? fallback ?? ''
+  }
+
+  function setNote(key: string, value: string) {
+    setNoteDrafts((prev) => ({ ...prev, [key]: value }))
+  }
+
+  async function finishNote(displayName: string, key: string, fallback?: string) {
+    await saveIngredientNote(displayName, noteFor(key, fallback))
+    setNoteOpenId(null)
+  }
 
   return (
     <div className="space-y-6">
@@ -38,78 +53,90 @@ export default function EliminationPage() {
         </div>
       )}
 
-      <section className="space-y-3">
-        <h3 className="font-display text-xl">Suspects</h3>
-        {suspects.length === 0 && (
-          <div className="panel rounded-2xl p-4 text-sm text-[rgba(26,36,28,0.65)]">
-            No suspects yet. Add at least two breakout products that share an ingredient.
-          </div>
-        )}
-        <ul className="space-y-3">
-          {suspects.map((row) => (
-            <li key={row.normalizedName} className="panel rounded-2xl p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="font-semibold">{row.displayName}</p>
-                  <p className="text-xs mt-1 text-[rgba(26,36,28,0.55)]">
-                    In {row.breakoutCount} breakout products
-                  </p>
-                </div>
-              </div>
-              <input
-                className="field mt-3"
-                placeholder="Optional note"
-                value={noteDrafts[row.normalizedName] ?? row.note ?? ''}
-                onChange={(e) =>
-                  setNoteDrafts((prev) => ({
-                    ...prev,
-                    [row.normalizedName]: e.target.value,
-                  }))
-                }
-              />
-              <button
-                type="button"
-                className="btn btn-safe mt-3 w-full"
-                onClick={() =>
-                  void setIngredientCleared(
-                    row.displayName,
-                    true,
-                    noteDrafts[row.normalizedName] ?? row.note,
-                  )
-                }
-              >
-                Mark cleared
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+      <div className="elimination-columns">
+        <section className="space-y-3">
+          <h3 className="font-display text-xl">Suspects</h3>
+          {suspects.length === 0 && (
+            <div className="panel rounded-2xl p-4 text-sm text-[rgba(26,36,28,0.65)]">
+              No suspects yet. Add at least two breakout products that share an ingredient.
+            </div>
+          )}
+          <ul className="space-y-2.5">
+            {suspects.map((row) => {
+              const key = `suspect:${row.normalizedName}`
+              return (
+                <IngredientActionCard
+                  key={row.normalizedName}
+                  id={key}
+                  name={row.displayName}
+                  subtitle={`In ${row.breakoutCount} breakout products`}
+                  notePreview={noteFor(row.normalizedName, row.note)}
+                  noteOpen={noteOpenId === key}
+                  noteValue={noteFor(row.normalizedName, row.note)}
+                  primary="clear"
+                  onPrimary={() =>
+                    void setIngredientCleared(
+                      row.displayName,
+                      true,
+                      noteFor(row.normalizedName, row.note),
+                    )
+                  }
+                  onToggleNote={() =>
+                    setNoteOpenId((prev) => (prev === key ? null : key))
+                  }
+                  onNoteChange={(value) => setNote(row.normalizedName, value)}
+                  onNoteDone={() =>
+                    void finishNote(row.displayName, row.normalizedName, row.note)
+                  }
+                />
+              )
+            })}
+          </ul>
+        </section>
 
-      <section className="space-y-3">
-        <h3 className="font-display text-xl">Cleared</h3>
-        {cleared.length === 0 && (
-          <div className="panel rounded-2xl p-4 text-sm text-[rgba(26,36,28,0.65)]">
-            Cleared ingredients will show up here.
-          </div>
-        )}
-        <ul className="space-y-3">
-          {cleared.map((row) => (
-            <li key={row.normalizedName} className="panel rounded-2xl p-4">
-              <p className="font-semibold">{row.displayName}</p>
-              {row.note && (
-                <p className="text-sm mt-1 text-[rgba(26,36,28,0.65)]">{row.note}</p>
-              )}
-              <button
-                type="button"
-                className="btn btn-secondary mt-3 w-full"
-                onClick={() => void setIngredientCleared(row.displayName, false)}
-              >
-                Undo cleared
-              </button>
-            </li>
-          ))}
-        </ul>
-      </section>
+        <section className="space-y-3">
+          <h3 className="font-display text-xl">Cleared</h3>
+          {cleared.length === 0 && (
+            <div className="panel rounded-2xl p-4 text-sm text-[rgba(26,36,28,0.65)]">
+              Cleared ingredients will show up here.
+            </div>
+          )}
+          <ul className="space-y-2.5">
+            {cleared.map((row) => {
+              const key = `cleared:${row.normalizedName}`
+              const manual = row.reason === 'manual'
+              return (
+                <IngredientActionCard
+                  key={row.normalizedName}
+                  id={key}
+                  name={row.displayName}
+                  subtitle={
+                    manual
+                      ? 'Manually cleared'
+                      : 'Found in a tolerated product'
+                  }
+                  notePreview={noteFor(row.normalizedName, row.note)}
+                  noteOpen={noteOpenId === key}
+                  noteValue={noteFor(row.normalizedName, row.note)}
+                  primary={manual ? 'undo' : undefined}
+                  onPrimary={
+                    manual
+                      ? () => void setIngredientCleared(row.displayName, false)
+                      : undefined
+                  }
+                  onToggleNote={() =>
+                    setNoteOpenId((prev) => (prev === key ? null : key))
+                  }
+                  onNoteChange={(value) => setNote(row.normalizedName, value)}
+                  onNoteDone={() =>
+                    void finishNote(row.displayName, row.normalizedName, row.note)
+                  }
+                />
+              )
+            })}
+          </ul>
+        </section>
+      </div>
     </div>
   )
 }

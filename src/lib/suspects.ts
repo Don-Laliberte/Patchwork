@@ -13,6 +13,16 @@ export interface SuspectRow {
   note?: string
 }
 
+export interface ClearedRow {
+  normalizedName: string
+  displayName: string
+  breakoutCount: number
+  note?: string
+  /** Manual clear from Suspects, or auto-cleared by a tolerated product. */
+  reason: 'manual' | 'tolerated'
+  clearedAt?: number
+}
+
 export function countBreakoutAppearances(products: Product[]): Map<string, number> {
   const counts = new Map<string, number>()
   for (const product of productsForElimination(products)) {
@@ -94,17 +104,48 @@ export function computeSuspects(
   )
 }
 
+/**
+ * Cleared: manually marked safe, or would-be suspects that also appear in a
+ * tolerated product (so undoing a manual clear does not drop them into limbo).
+ */
 export function computeClearedList(
   products: Product[],
   metas: IngredientMeta[],
-): Array<IngredientMeta & { breakoutCount: number }> {
+): ClearedRow[] {
+  const metaByKey = new Map(metas.map((m) => [m.normalizedName, m]))
   const breakoutCounts = countBreakoutAppearances(products)
-  return metas
-    .filter((m) => m.cleared)
-    .map((m) => ({
-      ...m,
-      displayName: formatIngredientDisplay(m.displayName),
-      breakoutCount: breakoutCounts.get(m.normalizedName) ?? 0,
-    }))
-    .sort((a, b) => a.displayName.localeCompare(b.displayName))
+  const safeCounts = countSafeAppearances(products)
+  const byKey = new Map<string, ClearedRow>()
+
+  for (const meta of metas) {
+    if (!meta.cleared) continue
+    byKey.set(meta.normalizedName, {
+      normalizedName: meta.normalizedName,
+      displayName: formatIngredientDisplay(meta.displayName),
+      breakoutCount: breakoutCounts.get(meta.normalizedName) ?? 0,
+      note: meta.note,
+      reason: 'manual',
+      clearedAt: meta.clearedAt,
+    })
+  }
+
+  // Would-be suspects that a tolerated product already clears for you.
+  for (const [normalizedName, breakoutCount] of breakoutCounts) {
+    if (breakoutCount <= 1) continue
+    if ((safeCounts.get(normalizedName) ?? 0) <= 0) continue
+    if (byKey.has(normalizedName)) continue
+    const meta = metaByKey.get(normalizedName)
+    byKey.set(normalizedName, {
+      normalizedName,
+      displayName: preferredDisplay(normalizedName, products, meta),
+      breakoutCount,
+      note: meta?.note,
+      reason: 'tolerated',
+      clearedAt: meta?.clearedAt,
+    })
+  }
+
+  return [...byKey.values()].sort((a, b) =>
+    a.displayName.localeCompare(b.displayName),
+  )
 }

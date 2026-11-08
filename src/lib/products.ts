@@ -134,6 +134,23 @@ export async function setIngredientCleared(
   })
 }
 
+/** Persist a note without changing cleared status. */
+export async function saveIngredientNote(
+  displayName: string,
+  note: string,
+): Promise<void> {
+  const normalizedName = normalizeIngredient(displayName)
+  const existing = await db.ingredients.get(normalizedName)
+  const trimmed = note.trim()
+  await db.ingredients.put({
+    normalizedName,
+    displayName: formatIngredientDisplay(existing?.displayName || displayName),
+    cleared: existing?.cleared ?? false,
+    clearedAt: existing?.clearedAt,
+    note: trimmed || undefined,
+  })
+}
+
 export async function upsertIngredientDisplay(
   displayName: string,
 ): Promise<void> {
