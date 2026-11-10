@@ -1,4 +1,4 @@
-import { SUPPORT_LINKS } from '../config/support'
+import { BUG_REPORT, SUPPORT_LINKS } from '../config/support'
 
 export default function SupportPage() {
   return (
@@ -11,17 +11,27 @@ export default function SupportPage() {
         </p>
       </div>
 
-      {SUPPORT_LINKS.map((link) => (
+      <div className="space-y-3">
+        {SUPPORT_LINKS.map((link) => (
+          <a
+            key={link.id}
+            className="btn btn-primary w-full"
+            href={link.href}
+            target="_blank"
+            rel="noreferrer"
+          >
+            {link.label}
+          </a>
+        ))}
         <a
-          key={link.id}
-          className="btn btn-primary w-full"
-          href={link.href}
+          className="btn btn-secondary w-full"
+          href={BUG_REPORT.href}
           target="_blank"
           rel="noreferrer"
         >
-          {link.label}
+          {BUG_REPORT.label}
         </a>
-      ))}
+      </div>
 
       <details className="panel support-details rounded-2xl">
         <summary>

@@ -10,4 +10,10 @@ export const SUPPORT_LINKS = [
   },
 ] as const
 
+/** Opens a new GitHub issue for bug reports. */
+export const BUG_REPORT = {
+  label: 'Report a bug',
+  href: 'https://github.com/Don-Laliberte/Patchwork/issues/new',
+} as const
+
 export const PRODUCT_URL_WORKER_PATH = '/api/fetch-product-url'
