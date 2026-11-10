@@ -80,15 +80,35 @@ a {
 
 .app-header-inner {
   display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.85rem;
+  padding: 1rem 1rem 0.75rem;
+}
+
+.app-brand-row {
+  display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem 1.25rem;
-  padding: 1rem 1rem 0.75rem;
-  flex-wrap: wrap;
+  gap: 0.75rem;
+  min-width: 0;
 }
 
 .app-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.app-logo {
+  width: 3.25rem;
+  height: auto;
   flex-shrink: 0;
+}
+
+.app-brand-copy {
+  min-width: 0;
 }
 
 .products-sticky-sentinel {
@@ -130,24 +150,17 @@ a {
   opacity: 1;
 }
 
-.header-nav-row {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  flex: 1;
-  min-width: min(100%, 16rem);
-}
-
 .header-nav {
   display: flex;
-  flex: 1;
+  width: 100%;
   min-width: 0;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.25rem;
+  justify-content: flex-start;
+  gap: 0.2rem;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
   scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
 }
 
 .header-nav::-webkit-scrollbar {

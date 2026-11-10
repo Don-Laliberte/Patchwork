@@ -17,27 +17,22 @@ export default function App() {
     <div className="app-shell">
       <header className="app-header">
         <div className="app-header-inner">
-          <div className="app-brand">
-            <h1 className="font-display text-3xl leading-none">Patchwork</h1>
-            <p className="mt-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[rgba(247,243,234,0.65)]">
-              Ingredient tracker
-            </p>
-          </div>
-          <div className="header-nav-row">
-            <nav className="header-nav" aria-label="Primary">
-              {links.map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  end={link.end}
-                  className={({ isActive }) =>
-                    `nav-link whitespace-nowrap ${isActive ? 'active' : ''}`
-                  }
-                >
-                  {link.label}
-                </NavLink>
-              ))}
-            </nav>
+          <div className="app-brand-row">
+            <div className="app-brand">
+              <img
+                className="app-logo"
+                src="/patchwork-logo.png"
+                alt=""
+                width={56}
+                height={50}
+              />
+              <div className="app-brand-copy">
+                <h1 className="font-display text-3xl leading-none">Patchwork</h1>
+                <p className="mt-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-[rgba(247,243,234,0.65)]">
+                  Ingredient tracker
+                </p>
+              </div>
+            </div>
             <p
               className="product-count"
               aria-label={`${count} Product${count === 1 ? '' : 's'}`}
@@ -48,6 +43,20 @@ export default function App() {
               </span>
             </p>
           </div>
+          <nav className="header-nav" aria-label="Primary">
+            {links.map((link) => (
+              <NavLink
+                key={link.to}
+                to={link.to}
+                end={link.end}
+                className={({ isActive }) =>
+                  `nav-link whitespace-nowrap ${isActive ? 'active' : ''}`
+                }
+              >
+                {link.label}
+              </NavLink>
+            ))}
+          </nav>
         </div>
       </header>
 
